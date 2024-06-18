@@ -14,7 +14,7 @@ async function createConsumer(onMessage) {
         channel.consume(queue, (msg) => {
             if (msg !== null) {
                 const messageObj = JSON.parse(msg.content.toString());
-                const room = queue; // Assuming queue name is the room name
+                const room = queue;
                 console.log(` [x] Received message in room '${room}': `, messageObj);
                 onMessage(room, messageObj);
                 channel.ack(msg);
