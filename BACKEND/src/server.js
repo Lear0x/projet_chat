@@ -8,7 +8,8 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 let chatRooms = ['public_room'];
-let usersInRooms = {}; // Pour stocker les utilisateurs dans chaque salle de discussion
+let usersInRooms = {};
+let dict = [];// Pour stocker les utilisateurs dans chaque salle de discussion
 
 // Route pour envoyer un message à une salle de discussion spécifique
 app.post('/send-to-room', async (req, res) => {
@@ -65,9 +66,65 @@ app.get('/users-in-room/:room', (req, res) => {
     }
 
     const users = usersInRooms[room] || [];
-    res.json({ users });
+    res.status(200).json({ users });
 });
+
+
+app.post('/signUp', (req, res) => {
+	const { username, password, confirmPassword } = req.body;
+
+	if( password !== confirmPassword) {
+		return res.status(400).json({ error: 'Passwords do not match' });
+	}
+
+	if (!username) {
+		return res.status(400).json({ error: 'Username is required' });
+	}
+
+	if(!password) {
+		return res.status(400).json({ error: 'Password is required' });
+	}
+
+	if(dict.find(user => user.username === username)) {
+		return res.status(400).json({ error: 'Username already exists' });
+	}
+
+	dict.push({username: username, password: password});
+	res.status(200).json({ 
+		message: `User ${username} signed up`
+	});
+
+});
+
+app.post('/signIn', (req, res) => {
+	const { username, password } = req.body;
+
+	if (!username) {
+		return res.status(400).json({ error: 'Username is required' });
+	}
+
+	if(!password) {
+		return res.status(400).json({ error: 'Password is required' });
+	}
+
+	if(!dict.find(user => user.username === username)) {
+		return res.status(400).json({ error: 'Username does not exist' });
+	}
+
+	if(!dict.find(user => user.username === username && user.password === password)) {
+		return res.status(400).json({ error: 'Wrong password' });
+	}
+
+	res.status(200).json(
+		{ 
+			message: `User ${username} signed in`,
+			username: username,
+		});
+});
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
+
