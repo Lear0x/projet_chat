@@ -1,49 +1,88 @@
-// store/index.ts
+import { createStore } from 'vuex';
 
-import { createStore } from 'vuex'
-
-interface ChatMessage {
-  id: string;
-  user: string;
-  text: string;
-  time: string;
+interface User {
+  username: string;
+  password: string;
 }
 
 interface State {
-  users: string[];
-  messages: ChatMessage[];
+  users: User[];
+  currentUser: User | null;
+  messages: any[]; // Adjust type according to your message structure
 }
 
-const store = createStore<State>({
+export default createStore<State>({
   state: {
     users: [],
+    currentUser: null,
     messages: []
   },
+
   mutations: {
-    addUser(state, user: string) {
-      if (!state.users.includes(user)) {
-        state.users.push(user);
+    addUser(state, user: User) {
+      state.users.push(user);
+    },
+    setCurrentUser(state, user: User) {
+      state.currentUser = user;
+    },
+    addMessage(state, message: any) { // Adjust type according to your message structure
+      state.messages.push(message);
+    },
+    setUsers(state, users: User[]) {
+      state.users = users;
+    },
+    setMessages(state, messages: any[]) { // Adjust type according to your message structure
+      state.messages = messages;
+    },
+    clearMessages(state) {
+      state.messages = [];
+    },
+    setUsername(state, username: string) {
+      state.currentUser = { username, password: '' }; // Temporary structure based on username only
+    },
+    setUsersInRoom(state, users: User[]) {
+      state.users = users;
+    }
+  },
+
+  actions: {
+    registerUser({ commit, state }, user: User) {
+      const userExists = state.users.some(u => u.username === user.username);
+      if (!userExists) {
+        commit('addUser', user);
+      } else {
+        throw new Error('User already exists');
       }
     },
-    removeUser(state, user: string) {
-      state.users = state.users.filter(u => u !== user);
+    loginUser({ commit, state }, { username, password }: { username: string, password: string }) {
+      const user = state.users.find(u => u.username === username && u.password === password);
+      if (user) {
+        commit('setCurrentUser', user);
+      } else {
+        throw new Error('Invalid username or password');
+      }
     },
-    addMessage(state, message: ChatMessage) {
-      state.messages.push(message);
+    sendMessage({ commit, state }, message: any) { // Adjust type according to your message structure
+      if (state.currentUser) {
+        commit('addMessage', {
+          username: state.currentUser.username,
+          message: message,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        throw new Error('User not logged in');
+      }
     }
   },
-  actions: {
-    addUser({ commit }, user: string) {
-      commit('addUser', user);
+  getters: {
+    getUsers(state) {
+      return state.users;
     },
-    removeUser({ commit }, user: string) {
-      commit('removeUser', user);
+    getCurrentUser(state) {
+      return state.currentUser;
     },
-    addMessage({ commit }, message: ChatMessage) {
-      commit('addMessage', message);
+    getMessages(state) {
+      return state.messages;
     }
-  },
-  modules: {}
+  }
 });
-
-export default store;

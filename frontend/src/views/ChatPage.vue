@@ -1,51 +1,65 @@
-<!-- ChatPage.vue -->
-
 <template>
-  <div class="chat">
-    <h2>Public Chat</h2>
-    <p>Welcome, {{ username }}</p>
-    <div class="users">
-      <h3>Connected Users:</h3>
+  <div class="chat-container">
+    <div class="connected-users">
+      <h2>Utilisateurs connectés</h2>
       <ul>
-        <li v-for="user in connectedUsers" :key="user">{{ user }}</li>
-      </ul>
-    </div>
-    <div class="messages">
-      <h3>Messages:</h3>
-      <ul>
-        <li v-for="msg in chatMessages" :key="msg.id">
-          <strong>{{ msg.user }} ({{ msg.time }}):</strong> {{ msg.text }}
+        <li v-for="user in connectedUsers" :key="user">
+          <span class="user-avatar">{{ user.charAt(0).toUpperCase() }}</span>
+          {{ user }}
         </li>
       </ul>
+      <button @click="logout">Se déconnecter</button>
     </div>
-    <input v-model="newMessage" placeholder="Type a message" @keyup.enter="sendMessage" />
-    <button :disabled="isMessageEmpty" @click="sendMessage">Send</button>
+    <div class="chat-room">
+      <div class="chat-header">
+        <h2>Chat Room</h2>
+      </div>
+      <div class="chat-messages">
+        <div
+          v-for="message in messages"
+          :key="message.id"
+          :class="['chat-message', { 'my-message': message.user === username }]"
+        >
+          <div class="message-content">
+            <span class="message-user">{{ message.user.charAt(0).toUpperCase() }}</span>
+            <div class="message-body">
+              <div class="message-text">{{ message.text }}</div>
+              <div class="message-time">{{ message.time }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input">
+        <input
+          type="text"
+          v-model="newMessage"
+          @keypress.enter="sendMessage"
+          placeholder="Type your message here..."
+        />
+        <button @click="sendMessage" :disabled="!newMessage.trim()">Envoyer</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
-import { io } from 'socket.io-client'
+import { defineComponent, ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-
-interface ChatMessage {
-  id: string;
-  user: string;
-  text: string;
-  time: string;
-}
+import axios from 'axios'
 
 export default defineComponent({
   name: 'ChatPage',
   setup() {
     const route = useRoute()
-    const username = ref<string>('')
-    const newMessage = ref('')
-
+    const router = useRouter()
     const store = useStore()
+    const username = ref('')
+    const newMessage = ref('')
+    const connectedUsers = ref<string[]>([])
+    const messages = computed(() => store.state.messages)
 
-    onMounted(() => {
+    onMounted(async () => {
       const storedUsername = localStorage.getItem('username')
       if (storedUsername) {
         username.value = storedUsername
@@ -54,59 +68,185 @@ export default defineComponent({
         localStorage.setItem('username', username.value)
       }
 
-      // Socket.io connection
-      const socket = io('http://localhost:3000')
-      socket.emit('join', username.value)
-
-      socket.on('users', (connectedUsers: string[]) => {
-        store.dispatch('addUser', connectedUsers)
-      })
-
-      socket.on('message', (message: ChatMessage) => {
-        store.dispatch('addMessage', message)
-      })
-
-      onBeforeUnmount(() => {
-        socket.disconnect()
-      })
+      try {
+        const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
+        connectedUsers.value = response.data.users
+        if (!connectedUsers.value.includes(username.value)) {
+          connectedUsers.value.push(username.value)
+        }
+      } catch (error) {
+        console.error('Error getting users:', error)
+      }
     })
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
       if (newMessage.value.trim()) {
-        const now = new Date()
-        const message: ChatMessage = {
-          id: Math.random().toString(36).substr(2, 9),
+        const messageObj = {
           user: username.value,
           text: newMessage.value,
-          time: `${now.getHours()}:${now.getMinutes()}`
+          time: new Date().toLocaleString(),
         }
-        // Utilisation de Vuex pour ajouter le message
-        store.dispatch('addMessage', message)
-        const socket = io('http://localhost:3000')
-        socket.emit('message', message)
-        newMessage.value = ''
+        store.commit('addMessage', messageObj)
+        try {
+          await axios.post('http://localhost:3000/send-to-room', {
+            username: username.value,
+            message: newMessage.value,
+            room: 'public_room',
+          })
+          newMessage.value = ''
+        } catch (error) {
+          console.error('Error sending message:', error)
+        }
       }
     }
 
-    // Utilisation de computed pour extraire les données de l'état global
-    const connectedUsers = computed(() => store.state.users)
-    const chatMessages = computed(() => store.state.messages)
-
-    // Propriété calculée pour vérifier si le champ de message est vide
-    const isMessageEmpty = computed(() => newMessage.value.trim().length === 0)
+    const logout = () => {
+      localStorage.removeItem('username')
+      store.commit('setUsername', '')
+      store.commit('setUsersInRoom', [])
+      store.commit('clearMessages')
+      router.push({ name: 'HomePage' }) // Redirection vers la page d'accueil
+    }
 
     return {
       username,
       newMessage,
-      sendMessage,
       connectedUsers,
-      chatMessages,
-      isMessageEmpty
+      messages,
+      sendMessage,
+      logout,
     }
-  }
+  },
 })
 </script>
 
 <style scoped>
-/* Styles peuvent être ajoutés ici */
+.chat-container {
+  display: flex;
+  height: 100vh;
+}
+
+.connected-users {
+  width: 20%;
+  background-color: #6a1b9a;
+  color: white;
+  padding: 20px;
+}
+
+.connected-users h2 {
+  margin-top: 0;
+}
+
+.connected-users ul {
+  list-style: none;
+  padding: 0;
+}
+
+.connected-users li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.user-avatar {
+  background-color: #8e44ad;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.chat-room {
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  background-color: #9c27b0;
+  color: white;
+  padding: 10px;
+  text-align: center;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+}
+
+.chat-message {
+  margin-bottom: 15px;
+}
+
+.message-content {
+  display: flex;
+  align-items: center;
+}
+
+.message-user {
+  background-color: #8e44ad;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.message-body {
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  padding: 10px;
+  max-width: 70%;
+}
+
+.my-message .message-body {
+  background-color: #a5d6a7;
+}
+
+.message-text {
+  margin-bottom: 5px;
+}
+
+.message-time {
+  font-size: 0.8em;
+  color: #757575;
+  text-align: right;
+}
+
+.chat-input {
+  display: flex;
+  padding: 10px;
+  background-color: #eee;
+  border-top: 1px solid #ccc;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 10px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.chat-input button {
+  background-color: #9c27b0;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.chat-input button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
 </style>
