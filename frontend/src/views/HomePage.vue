@@ -43,36 +43,60 @@ export default defineComponent({
 		// Computed property to check if the login form is valid
 		const isLoginFormValid = computed(() => {
 			return username.value.trim().length >= 3 && password.value.trim().length >= 3
-		})
+		});
 
 		// Computed property to check if the register form is valid
 		const isRegisterFormValid = computed(() => {
 			return newUsername.value.trim().length >= 3 && newPassword.value.trim().length >= 3
-		})
+		});
 
-		const login = () => {
+		const login = async () => {
 			if (isLoginFormValid.value) {
-				const user = store.state.users.find(
-					(u: any) => u.username === username.value && u.password === password.value
-				)
-				if (user) {
-					// Save username to localStorage
+
+				const response = await fetch('http://localhost:3000/signIn', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ username: username.value, password: password.value}),
+				});
+				var user = {
+					username: '',
+					password: ''
+				};
+
+				if(response.status === 200) {
+					user.username = username.value;
+					user.password = password.value;
 					localStorage.setItem('username', username.value)
 					store.commit('setCurrentUser', user)
 					router.push({ name: 'ChatPage', query: { username: username.value } })
 				} else {
-					alert('Invalid username or password')
+					var responsedata = await response.json();
+					alert(responsedata.error);
 				}
 			}
 		}
 
-		const register = () => {
+		const register = async () => {
 			if (isRegisterFormValid.value) {
 				try {
-					store.dispatch('registerUser', { username: newUsername.value, password: newPassword.value })
-					alert('User registered successfully')
-					newUsername.value = ''
-					newPassword.value = ''
+
+					const response = await fetch('http://localhost:3000/signUp', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ username: newUsername.value, password: newPassword.value}),
+					});
+					if(response.status === 200) {
+						alert('User registered successfully')
+						newUsername.value = ''
+						newPassword.value = ''
+					} else {
+						var responsedata = await response.json();
+						alert(responsedata.error);
+					}
 				} catch (error) {
 					alert('User already exists')
 				}

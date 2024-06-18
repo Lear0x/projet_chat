@@ -1,45 +1,38 @@
 <template>
-  <div class="chat-container">
-    <div class="connected-users">
-      <h2>Utilisateurs connectés</h2>
-      <ul>
-        <li v-for="user in connectedUsers" :key="user">
-          <span class="user-avatar">{{ user.charAt(0).toUpperCase() }}</span>
-          {{ user }}
-        </li>
-      </ul>
-      <button @click="logout">Se déconnecter</button>
-    </div>
-    <div class="chat-room">
-      <div class="chat-header">
-        <h2>Chat Room</h2>
-      </div>
-      <div class="chat-messages">
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          :class="['chat-message', { 'my-message': message.user === username }]"
-        >
-          <div class="message-content">
-            <span class="message-user">{{ message.user.charAt(0).toUpperCase() }}</span>
-            <div class="message-body">
-              <div class="message-text">{{ message.text }}</div>
-              <div class="message-time">{{ message.time }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="chat-input">
-        <input
-          type="text"
-          v-model="newMessage"
-          @keypress.enter="sendMessage"
-          placeholder="Type your message here..."
-        />
-        <button @click="sendMessage" :disabled="!newMessage.trim()">Envoyer</button>
-      </div>
-    </div>
-  </div>
+	<div class="chat-container">
+		<div class="connected-users">
+			<h2>Utilisateurs connectés</h2>
+			<ul>
+				<li v-for="user in connectedUsers" :key="user">
+					<span class="user-avatar">{{ user.charAt(0).toUpperCase() }}</span>
+					{{ user }}
+				</li>
+			</ul>
+			<button @click="logout">Se déconnecter</button>
+		</div>
+		<div class="chat-room">
+			<div class="chat-header">
+				<h2>Chat Room</h2>
+			</div>
+			<div class="chat-messages">
+				<div v-for="message in messages" :key="message.id"
+					:class="['chat-message', { 'my-message': message.user === username }]">
+					<div class="message-content">
+						<span class="message-user">{{ message.user.charAt(0).toUpperCase() }}</span>
+						<div class="message-body">
+							<div class="message-text">{{ message.text }}</div>
+							<div class="message-time">{{ message.time }}</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="chat-input">
+				<input type="text" v-model="newMessage" @keypress.enter="sendMessage"
+					placeholder="Type your message here..." />
+				<button @click="sendMessage" :disabled="!newMessage.trim()">Envoyer</button>
+			</div>
+		</div>
+	</div>
 </template>
 
 <script lang="ts">
@@ -49,204 +42,204 @@ import { useStore } from 'vuex'
 import axios from 'axios'
 
 export default defineComponent({
-  name: 'ChatPage',
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const store = useStore()
-    const username = ref('')
-    const newMessage = ref('')
-    const connectedUsers = ref<string[]>([])
-    const messages = computed(() => store.state.messages)
+	name: 'ChatPage',
+	setup() {
+		const route = useRoute()
+		const router = useRouter()
+		const store = useStore()
+		const username = ref('')
+		const newMessage = ref('')
+		const connectedUsers = ref<string[]>([])
+		const messages = computed(() => store.state.messages)
 
-    onMounted(async () => {
-      const storedUsername = localStorage.getItem('username')
-      if (storedUsername) {
-        username.value = storedUsername
-      } else {
-        username.value = route.params.username as string
-        localStorage.setItem('username', username.value)
-      }
+		onMounted(async () => {
+			const storedUsername = localStorage.getItem('username')
+			if (storedUsername) {
+				username.value = storedUsername
+			} else {
+				username.value = route.params.username as string
+				localStorage.setItem('username', username.value)
+			}
 
-      try {
-        const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
-        connectedUsers.value = response.data.users
-        if (!connectedUsers.value.includes(username.value)) {
-          connectedUsers.value.push(username.value)
-        }
-      } catch (error) {
-        console.error('Error getting users:', error)
-      }
-    })
+			try {
+				const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
+				connectedUsers.value = response.data.users
+				if (!connectedUsers.value.includes(username.value)) {
+					connectedUsers.value.push(username.value)
+				}
+			} catch (error) {
+				console.error('Error getting users:', error)
+			}
+		})
 
-    const sendMessage = async () => {
-      if (newMessage.value.trim()) {
-        const messageObj = {
-          user: username.value,
-          text: newMessage.value,
-          time: new Date().toLocaleString(),
-        }
-        store.commit('addMessage', messageObj)
-        try {
-          await axios.post('http://localhost:3000/send-to-room', {
-            username: username.value,
-            message: newMessage.value,
-            room: 'public_room',
-          })
-          newMessage.value = ''
-        } catch (error) {
-          console.error('Error sending message:', error)
-        }
-      }
-    }
+		const sendMessage = async () => {
+			if (newMessage.value.trim()) {
+				const messageObj = {
+					user: username.value,
+					text: newMessage.value,
+					time: new Date().toLocaleString(),
+				}
+				store.commit('addMessage', messageObj)
+				try {
+					await axios.post('http://localhost:3000/send-to-room', {
+						username: username.value,
+						message: newMessage.value,
+						room: 'public_room',
+					})
+					newMessage.value = ''
+				} catch (error) {
+					console.error('Error sending message:', error)
+				}
+			}
+		}
 
-    const logout = () => {
-      localStorage.removeItem('username')
-      store.commit('setUsername', '')
-      store.commit('setUsersInRoom', [])
-      store.commit('clearMessages')
-      router.push({ name: 'HomePage' }) // Redirection vers la page d'accueil
-    }
+		const logout = () => {
+			localStorage.removeItem('username')
+			store.commit('setUsername', '')
+			store.commit('setUsersInRoom', [])
+			store.commit('clearMessages')
+			router.push({ name: 'HomePage' }) // Redirection vers la page d'accueil
+		}
 
-    return {
-      username,
-      newMessage,
-      connectedUsers,
-      messages,
-      sendMessage,
-      logout,
-    }
-  },
+		return {
+			username,
+			newMessage,
+			connectedUsers,
+			messages,
+			sendMessage,
+			logout,
+		}
+	},
 })
 </script>
 
 <style scoped>
 .chat-container {
-  display: flex;
-  height: 100vh;
+	display: flex;
+	height: 100vh;
 }
 
 .connected-users {
-  width: 20%;
-  background-color: #6a1b9a;
-  color: white;
-  padding: 20px;
+	width: 20%;
+	background-color: #6a1b9a;
+	color: white;
+	padding: 20px;
 }
 
 .connected-users h2 {
-  margin-top: 0;
+	margin-top: 0;
 }
 
 .connected-users ul {
-  list-style: none;
-  padding: 0;
+	list-style: none;
+	padding: 0;
 }
 
 .connected-users li {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+	display: flex;
+	align-items: center;
+	margin-bottom: 10px;
 }
 
 .user-avatar {
-  background-color: #8e44ad;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 10px;
+	background-color: #8e44ad;
+	border-radius: 50%;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 10px;
 }
 
 .chat-room {
-  width: 80%;
-  display: flex;
-  flex-direction: column;
+	width: 80%;
+	display: flex;
+	flex-direction: column;
 }
 
 .chat-header {
-  background-color: #9c27b0;
-  color: white;
-  padding: 10px;
-  text-align: center;
+	background-color: #9c27b0;
+	color: white;
+	padding: 10px;
+	text-align: center;
 }
 
 .chat-messages {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background-color: #f5f5f5;
+	flex: 1;
+	padding: 20px;
+	overflow-y: auto;
+	background-color: #f5f5f5;
 }
 
 .chat-message {
-  margin-bottom: 15px;
+	margin-bottom: 15px;
 }
 
 .message-content {
-  display: flex;
-  align-items: center;
+	display: flex;
+	align-items: center;
 }
 
 .message-user {
-  background-color: #8e44ad;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 10px;
+	background-color: #8e44ad;
+	border-radius: 50%;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 10px;
 }
 
 .message-body {
-  background-color: #e0e0e0;
-  border-radius: 10px;
-  padding: 10px;
-  max-width: 70%;
+	background-color: #e0e0e0;
+	border-radius: 10px;
+	padding: 10px;
+	max-width: 70%;
 }
 
 .my-message .message-body {
-  background-color: #a5d6a7;
+	background-color: #a5d6a7;
 }
 
 .message-text {
-  margin-bottom: 5px;
+	margin-bottom: 5px;
 }
 
 .message-time {
-  font-size: 0.8em;
-  color: #757575;
-  text-align: right;
+	font-size: 0.8em;
+	color: #757575;
+	text-align: right;
 }
 
 .chat-input {
-  display: flex;
-  padding: 10px;
-  background-color: #eee;
-  border-top: 1px solid #ccc;
+	display: flex;
+	padding: 10px;
+	background-color: #eee;
+	border-top: 1px solid #ccc;
 }
 
 .chat-input input {
-  flex: 1;
-  padding: 10px;
-  font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-right: 10px;
+	flex: 1;
+	padding: 10px;
+	font-size: 1em;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	margin-right: 10px;
 }
 
 .chat-input button {
-  background-color: #9c27b0;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
+	background-color: #9c27b0;
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 5px;
+	cursor: pointer;
 }
 
 .chat-input button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+	background-color: #ccc;
+	cursor: not-allowed;
 }
 </style>

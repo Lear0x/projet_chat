@@ -1,10 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const { sendMessageToRoom } = require('./producer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+app.use(cors());
 app.use(bodyParser.json());
 
 let chatRooms = ['public_room'];
@@ -70,11 +71,7 @@ app.get('/users-in-room/:room', (req, res) => {
 
 
 app.post('/signUp', (req, res) => {
-	const { username, password, confirmPassword } = req.body;
-
-	if( password !== confirmPassword) {
-		return res.status(400).json({ error: 'Passwords do not match' });
-	}
+	const { username, password} = req.body;
 
 	if (!username) {
 		return res.status(400).json({ error: 'Username is required' });
