@@ -16,12 +16,12 @@
 			</div>
 			<div class="chat-messages">
 				<div v-for="message in messages" :key="message.id"
-					:class="['chat-message', { 'my-message': message.user === username }]">
+					:class="['chat-message', { 'my-message': message.username === username }]">
 					<div class="message-content">
-						<span class="message-user">{{ message.user.charAt(0).toUpperCase() }}</span>
+						<span class="message-user">{{ message.username.charAt(0).toUpperCase() }}</span>
 						<div class="message-body">
-							<div class="message-text">{{ message.text }}</div>
-							<div class="message-time">{{ message.time }}</div>
+							<div class="message-text">{{ message.message }}</div>
+							<div class="message-time">{{ message.timestamp }}</div>
 						</div>
 					</div>
 				</div>
@@ -36,7 +36,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed } from 'vue'
+import { defineComponent, ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import axios from 'axios'
@@ -51,6 +51,7 @@ export default defineComponent({
 		const newMessage = ref('')
 		const connectedUsers = ref<string[]>([])
 		const messages = computed(() => store.state.messages)
+		let ws: WebSocket | null = null
 
 		onMounted(async () => {
 			const storedUsername = localStorage.getItem('username')
@@ -62,31 +63,61 @@ export default defineComponent({
 			}
 
 			try {
+				console.log('username', username.value);
 				const responseJoin = await axios.post('http://localhost:3000/join-room', {
 					username: username.value,
 					room: 'public_room',
-				});
+				})
 				
-				console.log(responseJoin);
+				console.log(responseJoin)
 
 				const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
 				connectedUsers.value = response.data.users
 				if (!connectedUsers.value.includes(username.value)) {
 					connectedUsers.value.push(username.value)
 				}
+
+				// Initialiser la connexion WebSocket
+				ws = new WebSocket('ws://localhost:3000')
+
+				ws.onopen = () => {
+					ws?.send(JSON.stringify({ type: 'join', username: username.value, room: 'public_room' }))
+					console.log('WebSocket connection established')
+				}
+
+				ws.onmessage = (event) => {
+					const message = JSON.parse(event.data)
+					console.log(message);
+					store.commit('addMessage', message)
+					console.log("messages", messages.value);
+				}
+
+				ws.onerror = (error) => {
+					console.error('WebSocket error: ', error)
+				}
+
+				ws.onclose = () => {
+					console.log('WebSocket connection closed')
+				}
 			} catch (error) {
 				console.error('Error getting users:', error)
 			}
 		})
 
+		onBeforeUnmount(() => {
+			if (ws) {
+				ws.close()
+			}
+		})
+
 		const sendMessage = async () => {
 			if (newMessage.value.trim()) {
-				const messageObj = {
-					user: username.value,
-					text: newMessage.value,
-					time: new Date().toLocaleString(),
-				}
-				store.commit('addMessage', messageObj)
+				// const messageObj = {
+				// 	username: username.value,
+				// 	text: newMessage.value,
+				// 	time: new Date().toLocaleString(),
+				// }
+				// store.commit('addMessage', messageObj)
 				try {
 					await axios.post('http://localhost:3000/send-to-room', {
 						username: username.value,

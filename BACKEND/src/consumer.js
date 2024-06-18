@@ -1,38 +1,28 @@
 const amqp = require('amqplib');
-const fs = require('fs');
-const path = require('path');
 
-async function receiveMessages() {
+async function createConsumer(onMessage) {
     try {
         const connection = await amqp.connect(process.env.RABBITMQ_URL);
         const channel = await connection.createChannel();
-        const queue = process.env.QUEUE_NAME;
+
+        const queue = process.env.QUEUE_NAME || 'public_room';
 
         await channel.assertQueue(queue, { durable: true });
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
+
+        console.log(` [*] Waiting for messages in ${queue}. To exit press CTRL+C`);
 
         channel.consume(queue, (msg) => {
             if (msg !== null) {
-                const messageContent = msg.content.toString();
-                console.log(" [x] Received '%s'", messageContent);
-
-                const messageObj = JSON.parse(messageContent);
-
-                if (messageObj.imageBase64) {
-                    const imageBuffer = Buffer.from(messageObj.imageBase64, 'base64');
-                    const imageName = `image_${Date.now()}.jpeg`;
-                    const imagePath = path.join(__dirname, 'received_images', imageName);
-
-                    fs.writeFileSync(imagePath, imageBuffer);
-                    console.log(` [x] Image saved as ${imageName}`);
-                }
-
+                const messageObj = JSON.parse(msg.content.toString());
+                const room = queue; // Assuming queue name is the room name
+                console.log(` [x] Received message in room '${room}': `, messageObj);
+                onMessage(room, messageObj);
                 channel.ack(msg);
             }
         });
     } catch (error) {
-        console.error("Error receiving messages: ", error);
+        console.error("Error creating consumer: ", error);
     }
 }
 
-module.exports = receiveMessages;
+module.exports = { createConsumer };
