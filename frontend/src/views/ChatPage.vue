@@ -27,8 +27,11 @@
 				</div>
 			</div>
 			<div class="chat-input">
-				<input type="text" v-model="newMessage" @keypress.enter="sendMessage"
-					placeholder="Type your message here..." />
+				<div class="input-container">
+					<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
+					<label for="fileInput" class="file-upload-icon">🔗</label>
+					<input id="fileInput" type="file" ref="fileInput" @change="handleFileUpload" style="display: none;">
+				</div>
 				<button @click="sendMessage" :disabled="!newMessage.trim()">Envoyer</button>
 			</div>
 		</div>
@@ -52,6 +55,8 @@ export default defineComponent({
 		const connectedUsers = ref<string[]>([])
 		const messages = computed(() => store.state.messages)
 		let ws: WebSocket | null = null
+
+		const fileInputRef = ref<HTMLInputElement | null>(null);
 
 		onMounted(async () => {
 			const storedUsername = localStorage.getItem('username')
@@ -139,6 +144,19 @@ export default defineComponent({
 			router.push({ name: 'HomePage' }) // Redirection vers la page d'accueil
 		}
 
+		const handleFileUpload = (event: Event) => {
+            const files = (event.target as HTMLInputElement).files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                // Vous pouvez maintenant utiliser 'file' pour l'envoyer ou le manipuler
+                console.log('File selected:', file.name);
+            }
+        }
+
+        const openFileInput = () => {
+            fileInputRef.value?.click();
+        }
+
 		return {
 			username,
 			newMessage,
@@ -146,6 +164,9 @@ export default defineComponent({
 			messages,
 			sendMessage,
 			logout,
+			handleFileUpload,
+            openFileInput,
+            fileInputRef,
 		}
 	},
 })
@@ -252,32 +273,52 @@ export default defineComponent({
 }
 
 .chat-input {
-	display: flex;
-	padding: 10px;
-	background-color: #eee;
-	border-top: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #eee;
+    border-top: 1px solid #ccc;
 }
 
-.chat-input input {
-	flex: 1;
-	padding: 10px;
-	font-size: 1em;
-	border: 1px solid #ccc;
-	border-radius: 5px;
-	margin-right: 10px;
+.input-container {
+    position: relative;
+    flex: 1;
+}
+
+.input-container input[type="text"] {
+    width: 94%;
+    padding: 10px 40px 10px 10px; /* Ajout de padding à droite pour l'icône */
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.file-upload-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #9c27b0;
+}
+
+.file-upload-icon:hover {
+    color: #7b1fa2;
 }
 
 .chat-input button {
-	background-color: #9c27b0;
-	color: white;
-	border: none;
-	padding: 10px 20px;
-	border-radius: 5px;
-	cursor: pointer;
+    background-color: #9c27b0;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
 }
 
 .chat-input button:disabled {
-	background-color: #ccc;
-	cursor: not-allowed;
+    background-color: #ccc;
+    cursor: not-allowed;
 }
 </style>
