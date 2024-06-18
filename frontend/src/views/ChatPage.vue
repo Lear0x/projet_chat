@@ -62,6 +62,13 @@ export default defineComponent({
 			}
 
 			try {
+				const responseJoin = await axios.post('http://localhost:3000/join-room', {
+					username: username.value,
+					room: 'public_room',
+				});
+				
+				console.log(responseJoin);
+
 				const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
 				connectedUsers.value = response.data.users
 				if (!connectedUsers.value.includes(username.value)) {
