@@ -1,4 +1,6 @@
 const amqp = require('amqplib');
+const fs = require('fs');
+const path = require('path');
 
 async function receiveMessages() {
     try {
@@ -11,7 +13,20 @@ async function receiveMessages() {
 
         channel.consume(queue, (msg) => {
             if (msg !== null) {
-                console.log(" [x] Received '%s'", msg.content.toString());
+                const messageContent = msg.content.toString();
+                console.log(" [x] Received '%s'", messageContent);
+
+                const messageObj = JSON.parse(messageContent);
+
+                if (messageObj.imageBase64) {
+                    const imageBuffer = Buffer.from(messageObj.imageBase64, 'base64');
+                    const imageName = `image_${Date.now()}.jpeg`;
+                    const imagePath = path.join(__dirname, 'received_images', imageName);
+
+                    fs.writeFileSync(imagePath, imageBuffer);
+                    console.log(` [x] Image saved as ${imageName}`);
+                }
+
                 channel.ack(msg);
             }
         });
