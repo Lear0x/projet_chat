@@ -85,11 +85,39 @@ export default defineComponent({
 					console.log('WebSocket connection established')
 				}
 
-				ws.onmessage = (event) => {
+				ws.onmessage = async (event) => {
 					const message = JSON.parse(event.data)
-					console.log(message);
-					store.commit('addMessage', message)
-					console.log("messages", messages.value);
+					if(message.message != 'logout' && message.message != 'login') {
+						store.commit('addMessage', message)
+					} else if (message.message == 'logout' && message.message != 'login'){
+						const messgeLogout = {
+							username: ' ',
+							message: `${message.username} a quitté la conversation`,
+							timestamp: new Date().toLocaleTimeString(),
+						}
+						store.commit('addMessage', messgeLogout);
+						
+						const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
+
+						connectedUsers.value = response.data.users
+						if (!connectedUsers.value.includes(username.value)) {
+							connectedUsers.value.push(username.value)
+						}
+					} else if (message.message == 'login') {
+						const messgeLogin = {
+							username: ' ',
+							message: `${message.username} a rejoint la conversation`,
+							timestamp: new Date().toLocaleTimeString(),
+						}
+						store.commit('addMessage', messgeLogin);
+						
+						const response = await axios.get(`http://localhost:3000/users-in-room/public_room`)
+
+						connectedUsers.value = response.data.users
+						if (!connectedUsers.value.includes(username.value)) {
+							connectedUsers.value.push(username.value)
+						}
+					}
 				}
 
 				ws.onerror = (error) => {
@@ -112,12 +140,6 @@ export default defineComponent({
 
 		const sendMessage = async () => {
 			if (newMessage.value.trim()) {
-				// const messageObj = {
-				// 	username: username.value,
-				// 	text: newMessage.value,
-				// 	time: new Date().toLocaleString(),
-				// }
-				// store.commit('addMessage', messageObj)
 				try {
 					await axios.post('http://localhost:3000/send-to-room', {
 						username: username.value,
@@ -131,7 +153,18 @@ export default defineComponent({
 			}
 		}
 
-		const logout = () => {
+		const logout = async () => {
+
+			try {
+				await axios.post('http://localhost:3000/signOut', {
+					username: username.value,
+					room: 'public_room',
+				})	;
+			} catch (error) {
+				console.error('Error leaving room:', error)
+			}
+
+
 			localStorage.removeItem('username')
 			store.commit('setUsername', '')
 			store.commit('setUsersInRoom', [])

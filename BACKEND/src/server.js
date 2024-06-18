@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { sendMessageToRoom } = require('./producer');
+const { sendMessageToRoom, triggersUserLogout, triggersLogin } = require('./producer');
 const { createConsumer } = require('./consumer');
 const WebSocket = require('ws');
 
@@ -62,7 +62,7 @@ app.post('/signUp', (req, res) => {
 });
 
 // Route pour se connecter
-app.post('/signIn', (req, res) => {
+app.post('/signIn', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username) {
@@ -109,7 +109,7 @@ app.post('/send-to-room', async (req, res) => {
 });
 
 // Route pour rejoindre une salle de discussion
-app.post('/join-room', (req, res) => {
+app.post('/join-room', async (req, res) => {
     const { username, room } = req.body;
 
     if (!username || !room) {
@@ -131,6 +131,8 @@ app.post('/join-room', (req, res) => {
         usersInRooms[room].push(username);
     }
 
+	await triggersLogin(username);
+
     res.json({ message: `User ${username} joined room ${room}` });
 });
 
@@ -144,6 +146,29 @@ app.get('/users-in-room/:room', (req, res) => {
 
     const users = usersInRooms[room] || [];
     res.json({ users });
+});
+
+//ENd point pour se déconnecter
+app.post('/signOut', async (req, res) => {
+	const { username, room } = req.body;
+
+	if (!username) {
+		return res.status(400).json({ error: 'Username is required' });
+	}
+
+	const user = dict.find(user => user.username === username);
+	if (!user) {
+		return res.status(400).json({ error: 'Username does not exist' });
+	}
+	
+	usersInRooms[room] = usersInRooms[room].filter(user => user !== username);
+	
+	await triggersUserLogout(username);
+
+	res.status(200).json({
+		message: `User ${username} signed out`
+	});
+
 });
 
 // Créer et démarrer le consommateur RabbitMQ
