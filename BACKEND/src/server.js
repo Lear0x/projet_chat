@@ -90,9 +90,9 @@ app.post('/signIn', async (req, res) => {
 
 // Route pour envoyer un message à une salle de discussion spécifique
 app.post('/send-to-room', async (req, res) => {
-    const { username, message, room } = req.body;
+    const { username, message, room, imageBase64 } = req.body;
 
-    if (!username || !message || !room) {
+    if (!username || !room) {
         return res.status(400).json({ error: 'Username, message, and room are required' });
     }
 
@@ -101,9 +101,8 @@ app.post('/send-to-room', async (req, res) => {
         return res.status(400).json({ error: 'Room does not exist' });
     }
 
-
     // Envoyer le message à tous les utilisateurs de la salle
-    await sendMessageToRoom(username, message, room);
+    await sendMessageToRoom(username, message, room, imageBase64);
 
     res.json({ message: 'Message sent to room' });
 });
