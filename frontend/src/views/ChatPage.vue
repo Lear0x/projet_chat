@@ -20,6 +20,7 @@
 					<div class="message-content">
 						<span class="message-user">{{ message.username.charAt(0).toUpperCase() }}</span>
 						<div class="message-body">
+							<img v-if="message.imageBase64" :src="message.imageBase64"/>
 							<div class="message-text">{{ message.message }}</div>
 							<div class="message-time">{{ message.timestamp }}</div>
 						</div>
@@ -166,7 +167,7 @@ export default defineComponent({
 							room: 'public_room',
 						})
 					}
-					
+
 					newMessage.value = '';
 					previewImage.value = null;
 				} catch (error) {
@@ -302,6 +303,10 @@ export default defineComponent({
 .message-content {
 	display: flex;
 	align-items: center;
+}
+
+.my-message .message-content {
+	flex-direction: row-reverse;
 }
 
 .message-user {
