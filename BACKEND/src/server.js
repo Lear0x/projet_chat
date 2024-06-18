@@ -12,7 +12,7 @@ let usersInRooms = {}; // Pour stocker les utilisateurs dans chaque salle de dis
 
 // Route pour envoyer un message à une salle de discussion spécifique
 app.post('/send-to-room', async (req, res) => {
-    const { username, message, room } = req.body;
+    const { username, message, room, image } = req.body;
 
     if (!username || !message || !room) {
         return res.status(400).json({ error: 'Username, message, and room are required' });
@@ -23,8 +23,8 @@ app.post('/send-to-room', async (req, res) => {
         return res.status(400).json({ error: 'Room does not exist' });
     }
 
-    // Envoyer le message à tous les utilisateurs de la salle
-    await sendMessageToRoom(username, message, room);
+    // Envoyer le message à la room, incluant l'image en base64 si présente
+    await sendMessageToRoom(username, message, room, image);
 
     res.json({ message: 'Message sent to room' });
 });
@@ -42,7 +42,6 @@ app.post('/join-room', (req, res) => {
 		usersInRooms[room] = [];
 	}
 
-    // Vérifier si la salle de discussion existe, sinon la créer
     if (!chatRooms.includes(room)) {
         chatRooms.push(room);
         usersInRooms[room] = [];

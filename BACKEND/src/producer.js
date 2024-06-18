@@ -1,6 +1,7 @@
 const amqp = require('amqplib');
+const fs = require('fs');
 
-async function sendMessageToRoom(username, message, room = 'public_room') {
+async function sendMessageToRoom(username, message, room = 'public_room', imageBase64) {
     try {
         const connection = await amqp.connect(process.env.RABBITMQ_URL);
         const channel = await connection.createChannel();
@@ -11,6 +12,10 @@ async function sendMessageToRoom(username, message, room = 'public_room') {
             message,
             timestamp: new Date().toISOString()
         };
+
+        if (imageBase64) {
+            messageObj.imageBase64 = imageBase64;
+        }
 
         channel.sendToQueue(room, Buffer.from(JSON.stringify(messageObj)), { persistent: true });
         console.log(` [x] Sent message from '${username}' in room '${room}': '${message}'`);
