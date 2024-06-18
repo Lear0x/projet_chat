@@ -27,12 +27,11 @@
 				</div>
 			</div>
 			<div class="chat-input">
-				<div class="input-container">
-					<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
-					<label for="fileInput" class="file-upload-icon">🔗</label>
-					<input id="fileInput" type="file" ref="fileInput" @change="handleFileUpload" style="display: none;">
-				</div>
-				<button @click="sendMessage" :disabled="!newMessage.trim()">Envoyer</button>
+				<label for="fileInput" class="file-upload-btn">🔗</label>
+				<input id="fileInput" type="file" ref="fileInput" @change="handleFileUpload" style="display: none;">
+				<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
+				<button @click="sendMessage" :disabled="!canSendMessage">Envoyer</button>
+				<img v-if="previewImage" :src="previewImage" alt="Image preview" class="image-preview" />
 			</div>
 		</div>
 	</div>
@@ -57,6 +56,7 @@ export default defineComponent({
 		let ws: WebSocket | null = null
 
 		const fileInputRef = ref<HTMLInputElement | null>(null);
+		const previewImage = ref<string | null>(null);
 
 		onMounted(async () => {
 			const storedUsername = localStorage.getItem('username')
@@ -143,15 +143,32 @@ export default defineComponent({
 			}
 		})
 
+		const canSendMessage = computed(() => {
+            return newMessage.value.trim() !== '' || previewImage.value !== null;
+        });
+
 		const sendMessage = async () => {
-			if (newMessage.value.trim()) {
-				try {
-					await axios.post('http://localhost:3000/send-to-room', {
-						username: username.value,
-						message: newMessage.value,
-						room: 'public_room',
-					})
-					newMessage.value = ''
+			if (newMessage.value.trim() || previewImage.value != null) {
+				console.log(previewImage);
+				try {	
+
+					if(previewImage.value != null) {
+						await axios.post('http://localhost:3000/send-to-room', {
+							username: username.value,
+							message: newMessage.value,
+							room: 'public_room',
+							imageBase64: previewImage.value,
+						})
+					} else {
+						await axios.post('http://localhost:3000/send-to-room', {
+							username: username.value,
+							message: newMessage.value,
+							room: 'public_room',
+						})
+					}
+					
+					newMessage.value = '';
+					previewImage.value = null;
 				} catch (error) {
 					console.error('Error sending message:', error)
 				}
@@ -177,10 +194,15 @@ export default defineComponent({
 			router.push({ name: 'HomePage' }) // Redirection vers la page d'accueil
 		}
 
-		const handleFileUpload = (event: Event) => {
+        const handleFileUpload = (event: Event) => {
             const files = (event.target as HTMLInputElement).files;
             if (files && files.length > 0) {
                 const file = files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.value = e.target?.result as string;
+                };
+                reader.readAsDataURL(file);
                 // Vous pouvez maintenant utiliser 'file' pour l'envoyer ou le manipuler
                 console.log('File selected:', file.name);
             }
@@ -189,6 +211,13 @@ export default defineComponent({
         const openFileInput = () => {
             fileInputRef.value?.click();
         }
+
+		const toBase64 = (file: Blob) => new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.readAsDataURL(file);
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = reject;
+		})
 
 		return {
 			username,
@@ -200,6 +229,8 @@ export default defineComponent({
 			handleFileUpload,
             openFileInput,
             fileInputRef,
+			previewImage,
+			canSendMessage,
 		}
 	},
 })
@@ -313,19 +344,6 @@ export default defineComponent({
     border-top: 1px solid #ccc;
 }
 
-.input-container {
-    position: relative;
-    flex: 1;
-}
-
-.input-container input[type="text"] {
-    width: 94%;
-    padding: 10px 40px 10px 10px; /* Ajout de padding à droite pour l'icône */
-    font-size: 1em;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
 .file-upload-icon {
     position: absolute;
     right: 10px;
@@ -349,9 +367,18 @@ export default defineComponent({
     cursor: pointer;
     margin-left: 10px;
 }
+.chat-input input[type="text"] {
+	width: 100%;
+}
 
 .chat-input button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+}
+
+.image-preview {
+    max-width: 100px;
+    max-height: 100px;
+    margin-left: 10px;
 }
 </style>
