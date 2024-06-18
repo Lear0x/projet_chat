@@ -23,7 +23,6 @@ body {
 
 #app {
   text-align: center;
-  margin-top: 60px;
 }
 
 input, button {
