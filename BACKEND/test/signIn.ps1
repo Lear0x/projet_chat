@@ -10,7 +10,7 @@ function SignIn {
         password = $password
     } | ConvertTo-Json
 
-    $response = Invoke-RestMethod -Uri "http://localhost:3000/signIn" -Method Post -Body $body -ContentType "application/json"
+    $response = Invoke-RestMethod -Uri "http://bakcend:3000/signIn" -Method Post -Body $body -ContentType "application/json"
     Write-Output $response
 }
 

@@ -86,7 +86,7 @@ export default defineComponent({
 				}
 
 				// Initialiser la connexion WebSocket
-				ws = new WebSocket('ws://localhost:3000')
+				ws = new WebSocket('ws://localhost:8080/socket')
 
 				ws.onopen = () => {
 					ws?.send(JSON.stringify({ type: 'join', username: username.value, room: 'public_room' }))
@@ -95,6 +95,7 @@ export default defineComponent({
 
 				ws.onmessage = async (event) => {
 					const message = JSON.parse(event.data)
+					console.log(message);
 					if(message.message != 'logout' && message.message != 'login') {
 						store.commit('addMessage', message)
 					} else if (message.message == 'logout' && message.message != 'login'){
@@ -163,11 +164,13 @@ export default defineComponent({
 							imageBase64: previewImage.value,
 						})
 					} else {
-						await axios.post('http://localhost:3000/send-to-room', {
+						const d = await axios.post('http://localhost:3000/send-to-room', {
 							username: username.value,
 							message: newMessage.value,
 							room: 'public_room',
-						})
+						});
+
+						console.log('send', d);
 					}
 
 					newMessage.value = '';
