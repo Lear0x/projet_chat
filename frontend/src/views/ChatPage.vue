@@ -33,6 +33,7 @@
 				<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
 				<button @click="sendMessage" :disabled="!canSendMessage">Envoyer</button>
 				<img v-if="previewImage" :src="previewImage" alt="Image preview" class="image-preview" />
+				<div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 			</div>
 		</div>
 	</div>
@@ -42,7 +43,7 @@
 import { defineComponent, ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import axios from 'axios'
+import axios, { AxiosError, isAxiosError } from 'axios';
 
 export default defineComponent({
 	name: 'ChatPage',
@@ -58,6 +59,7 @@ export default defineComponent({
 
 		const fileInputRef = ref<HTMLInputElement | null>(null);
 		const previewImage = ref<string | null>(null);
+		const errorMessage = ref<string | null>(null);
 
 		onMounted(async () => {
 			const storedUsername = localStorage.getItem('username')
@@ -170,8 +172,14 @@ export default defineComponent({
 
 					newMessage.value = '';
 					previewImage.value = null;
+					errorMessage.value = null;
 				} catch (error) {
-					console.error('Error sending message:', error)
+					console.error('Error sending message:', error);
+					if (isAxiosError(error) && error.response && error.response.status === 413) {
+						errorMessage.value = "L'image est trop volumineuse. Veuillez sélectionner une image plus petite.";
+					} else {
+						errorMessage.value = "Une erreur s'est produite lors de l'envoi du message.";
+					}
 				}
 			}
 		}
@@ -232,6 +240,7 @@ export default defineComponent({
             fileInputRef,
 			previewImage,
 			canSendMessage,
+			errorMessage
 		}
 	},
 })
@@ -385,5 +394,11 @@ export default defineComponent({
     max-width: 100px;
     max-height: 100px;
     margin-left: 10px;
+}
+
+
+.error-message {
+	color: red;
+	margin-bottom: 10px;
 }
 </style>
