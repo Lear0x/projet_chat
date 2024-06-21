@@ -4,7 +4,7 @@
 			<h2>Utilisateurs connectés</h2>
 			<ul>
 				<li v-for="user in connectedUsers" :key="user">
-					<span class="user-avatar">{{ user.charAt(0).toUpperCase() }}</span>
+					<span class="user-avatar">{{ user.slice(0, 2).toUpperCase() }}</span>
 					{{ user }}
 				</li>
 			</ul>
@@ -18,7 +18,7 @@
 				<div v-for="message in messages" :key="message.id"
 					:class="['chat-message', { 'my-message': message.username === username }]">
 					<div class="message-content">
-						<span class="message-user">{{ message.username.charAt(0).toUpperCase() }}</span>
+						<span class="message-user">{{ message.username.slice(0, 2).toUpperCase() }}</span>
 						<div class="message-body">
 							<img v-if="message.imageBase64" :src="message.imageBase64"/>
 							<div class="message-text">{{ message.message }}</div>
@@ -27,13 +27,13 @@
 					</div>
 				</div>
 			</div>
+			<div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 			<div class="chat-input">
 				<label for="fileInput" class="file-upload-btn">🔗</label>
 				<input id="fileInput" type="file" ref="fileInput" @change="handleFileUpload" style="display: none;">
 				<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
 				<button @click="sendMessage" :disabled="!canSendMessage">Envoyer</button>
-				<img v-if="previewImage" :src="previewImage" alt="Image preview" class="image-preview" />
-				<div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+				<img v-if="previewImage" :src="previewImage" alt="Image preview" class="image-preview" />	
 			</div>
 		</div>
 	</div>
@@ -177,6 +177,7 @@ export default defineComponent({
 					console.error('Error sending message:', error);
 					if (isAxiosError(error) && error.response && error.response.status === 413) {
 						errorMessage.value = "L'image est trop volumineuse. Veuillez sélectionner une image plus petite.";
+						previewImage.value = null;
 					} else {
 						errorMessage.value = "Une erreur s'est produite lors de l'envoi du message.";
 					}
@@ -277,8 +278,8 @@ export default defineComponent({
 .user-avatar {
 	background-color: #8e44ad;
 	border-radius: 50%;
-	width: 30px;
-	height: 30px;
+	width: 35px;
+	height: 35px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -312,6 +313,7 @@ export default defineComponent({
 .message-content {
 	display: flex;
 	align-items: center;
+	gap: 10px;
 }
 
 .my-message .message-content {
