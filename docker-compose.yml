@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  frontend:
+    build: ./frontend
+    container_name: frontend_projet_chat
+    ports:
+      - "8080:8080"
+    networks:
+      - chat-network
+
+  backend:
+    build: ./backend
+    container_name: backend_projet_chat
+    ports:
+      - "3000:3000"
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - QUEUE_NAME=public_room
+    depends_on:
+      - rabbitmq
+    networks:
+      - chat-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq_projet_chat
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  chat-network:
+    driver: bridge

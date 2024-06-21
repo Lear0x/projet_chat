@@ -17,7 +17,9 @@ async function sendMessageToRoom(username, message, room = 'public_room', imageB
             messageObj.imageBase64 = imageBase64;
         }
 
-        channel.sendToQueue(room, Buffer.from(JSON.stringify(messageObj)), { persistent: true });
+        const bool = channel.sendToQueue(room, Buffer.from(JSON.stringify(messageObj)), { persistent: true });
+
+        console.log('send ', bool);
         console.log(` [x] Sent message from '${username}' in room '${room}': '${message}'`);
         
         setTimeout(() => {
@@ -43,6 +45,7 @@ async function triggersUserLogout(username, room = 'public_room') {
 	
 		channel.sendToQueue(room, Buffer.from(JSON.stringify(messageObj)), { persistent: true });
 	
+       
 		console.log(`[x] '${username}' has logged out`);
 
 		setTimeout(() => {
