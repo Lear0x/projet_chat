@@ -1,14 +1,14 @@
 <template>
 	<div class="chat-container">
 		<div class="connected-users">
-			<h2>Utilisateurs connectés</h2>
+			<h2>Connected users</h2>
 			<ul>
 				<li v-for="user in connectedUsers" :key="user">
 					<span class="user-avatar">{{ user.slice(0, 2).toUpperCase() }}</span>
 					{{ user }}
 				</li>
 			</ul>
-			<button @click="logout">Se déconnecter</button>
+			<button @click="logout">Log out</button>
 		</div>
 		<div class="chat-room">
 			<div class="chat-header">
@@ -16,9 +16,9 @@
 			</div>
 			<div class="chat-messages">
 				<div v-for="message in messages" :key="message.id"
-					:class="['chat-message', { 'my-message': message.username === username }]">
+					:class="['chat-message', { 'my-message': message.username === username, 'oth-message': message.username !== username && message.username !== ' ', 'syst-message': message.username === ' ' }]">
 					<div class="message-content">
-						<span class="message-user">{{ message.username.slice(0, 2).toUpperCase() }}</span>
+						<span v-if="message.username != ' '" class="message-user">{{ message.username.slice(0, 2).toUpperCase() }}</span>
 						<div class="message-body">
 							<img v-if="message.imageBase64" :src="message.imageBase64"/>
 							<div class="message-text">{{ message.message }}</div>
@@ -32,7 +32,7 @@
 				<label for="fileInput" class="file-upload-btn">🔗</label>
 				<input id="fileInput" type="file" ref="fileInput" @change="handleFileUpload" style="display: none;">
 				<input type="text" v-model="newMessage" @keypress.enter="sendMessage" placeholder="Type your message here..." />
-				<button @click="sendMessage" :disabled="!canSendMessage">Envoyer</button>
+				<button @click="sendMessage" :disabled="!canSendMessage">Send</button>
 				<img v-if="previewImage" :src="previewImage" alt="Image preview" class="image-preview" />	
 			</div>
 		</div>
@@ -100,7 +100,7 @@ export default defineComponent({
 					} else if (message.message == 'logout' && message.message != 'login'){
 						const messgeLogout = {
 							username: ' ',
-							message: `${message.username} a quitté la conversation`,
+							message: `${message.username} has left the Chat room`,
 							timestamp: new Date().toLocaleTimeString(),
 						}
 						store.commit('addMessage', messgeLogout);
@@ -114,7 +114,7 @@ export default defineComponent({
 					} else if (message.message == 'login') {
 						const messgeLogin = {
 							username: ' ',
-							message: `${message.username} a rejoint la conversation`,
+							message: `${message.username} join the Chat room`,
 							timestamp: new Date().toLocaleTimeString(),
 						}
 						store.commit('addMessage', messgeLogin);
@@ -320,6 +320,14 @@ export default defineComponent({
 	flex-direction: row-reverse;
 }
 
+.syst-message {
+	background-color: #e5e5e5;
+}
+
+.syst-message .message-content {
+	justify-content: center;
+}
+
 .message-user {
 	background-color: #8e44ad;
 	border-radius: 50%;
@@ -331,15 +339,21 @@ export default defineComponent({
 	margin-right: 10px;
 }
 
-.message-body {
-	background-color: #e0e0e0;
-	border-radius: 10px;
-	padding: 10px;
-	max-width: 70%;
-}
+
 
 .my-message .message-body {
 	background-color: #a5d6a7;
+}
+
+.oth-message .message-body {
+	background-color: #d8ace0;
+}
+
+
+.message-body {
+	border-radius: 10px;
+	padding: 10px;
+	max-width: 70%;
 }
 
 .message-text {
