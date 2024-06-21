@@ -321,7 +321,7 @@ export default defineComponent({
 }
 
 .syst-message {
-	background-color: #e5e5e5;
+	color: red;
 }
 
 .syst-message .message-content {
